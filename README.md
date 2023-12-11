@@ -4,6 +4,7 @@ mod
 camera.startN
 get_latest_frameN
 captureN
+
 == return numpy array
 
 camera.startC
