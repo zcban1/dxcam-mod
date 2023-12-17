@@ -190,15 +190,26 @@ class DXCamera:
         while not self.__stop_capture.is_set():
             try:
                 frame = self._grab(region)
-                if frame is None and video_mode:
-                    frame = np.array(self.__frame_buffer[(self.__head - 1) % self.max_buffer_len])
-
-                #with self.__lock:
-                self.__frame_buffer[self.__head] = frame
-                self.__head = (self.__head + 1) % self.max_buffer_len
-                self.__full = self.__head == self.__tail
-                self.__frame_available.set()
-                self.__frame_count += 1
+                if frame is not None:
+                    with self.__lock:
+                        self.__frame_buffer[self.__head] = frame
+                        if self.__full:
+                            self.__tail = (self.__tail + 1) % self.max_buffer_len
+                        self.__head = (self.__head + 1) % self.max_buffer_len
+                        self.__frame_available.set()
+                        self.__frame_count += 1
+                        self.__full = self.__head == self.__tail
+                elif video_mode:
+                    with self.__lock:
+                        self.__frame_buffer[self.__head] = np.array(
+                            self.__frame_buffer[(self.__head - 1) % self.max_buffer_len]
+                        )
+                        if self.__full:
+                            self.__tail = (self.__tail + 1) % self.max_buffer_len
+                        self.__head = (self.__head + 1) % self.max_buffer_len
+                        self.__frame_available.set()
+                        self.__frame_count += 1
+                        self.__full = self.__head == self.__tail
 
             except Exception as e:
                 import traceback
@@ -241,4 +252,5 @@ class DXCamera:
             self._stagesurf,
             self._duplicator,
         )
+
 
