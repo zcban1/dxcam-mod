@@ -61,11 +61,14 @@ class DXCamera:
 
         self.__frame_count = 0
         self.__capture_start_time = 0
-
+        
     def grab(self, region: Tuple[int, int, int, int] = None):
-        frame = self._grab(region)
-        if frame is not None:
-            return frame
+        while True:
+            frame = self._grab(region)
+            if frame is not None:
+                return frame
+            elif frame is None:
+                continue
 
     def _grab(self, region: Tuple[int, int, int, int]):
         if self._duplicator.update_frame():
@@ -156,24 +159,11 @@ class DXCamera:
             self.__tail = 0
             self.__full = False
 
-    def startN(
-        self,
-        region: Tuple[int, int, int, int] = None,
-        target_fps: int = 0,
-        video_mode=False,
-    ):
-
+    def startN(self,region: Tuple[int, int, int, int] = None,target_fps: int = 0, video_mode=False,):
         self.is_capturing = True
-        frame_shape = (region[3] - region[1], region[2] - region[0], self.channel_size)
-        self.__frame_buffer = np.ndarray(
-            (self.max_buffer_len, *frame_shape), dtype=np.uint8
-        )
-        self.__thread = Thread(
-            target=self.__captureN,
-            name="DXCamera",
-            args=(region, target_fps, video_mode),
-        )
-        self.__thread.daemon = True
+        frame_shape = (region[3] - region[1],region[2] - region[0],self.channel_size,)
+        self.__frame_buffer = np.zeros( (self.max_buffer_len, *frame_shape), dtype=np.uint8)
+        self.__thread = Thread(target=self.__captureN,name="DXCamera",args=(region, target_fps, video_mode),daemon=True, )
         self.__thread.start()
 
     def get_latest_frameN(self):
@@ -185,42 +175,31 @@ class DXCamera:
             self.__frame_count -= 1
             return np.array(ret)
         return None
-
+    
     def __captureN(self, region: Tuple[int, int, int, int], target_fps: int = 0, video_mode=False):
         while not self.__stop_capture.is_set():
             try:
                 frame = self._grab(region)
+                self.__frame_count += 1
                 if frame is not None:
-                    with self.__lock:
-                        self.__frame_buffer[self.__head] = frame
-                        if self.__full:
-                            self.__tail = (self.__tail + 1) % self.max_buffer_len
-                        self.__head = (self.__head + 1) % self.max_buffer_len
-                        self.__frame_available.set()
-                        self.__frame_count += 1
-                        self.__full = self.__head == self.__tail
+                    #with self.__lock:
+                    self.__frame_buffer[self.__head] = frame
+                    self.__head = (self.__head + 1) % self.max_buffer_len
+                    self.__full = self.__head == self.__tail
+                    self.__frame_available.set()                   
                 elif video_mode:
-                    with self.__lock:
-                        self.__frame_buffer[self.__head] = np.array(
-                            self.__frame_buffer[(self.__head - 1) % self.max_buffer_len]
-                        )
-                        if self.__full:
-                            self.__tail = (self.__tail + 1) % self.max_buffer_len
-                        self.__head = (self.__head + 1) % self.max_buffer_len
-                        self.__frame_available.set()
-                        self.__frame_count += 1
-                        self.__full = self.__head == self.__tail
-
+                    #with self.__lock:
+                    self.__frame_buffer[self.__head] = np.array(self.__frame_buffer[(self.__head - 1) % self.max_buffer_len] )
+                    self.__head = (self.__head + 1) % self.max_buffer_len
+                    self.__full = self.__head == self.__tail
+                    self.__frame_available.set()
+              
+                    
             except Exception as e:
-                import traceback
-                print(traceback.format_exc())
                 self.__stop_capture.set()
                 raise e
-
-        fps = int(self.__frame_count / (time.perf_counter() - self.__capture_start_time))
-        print(f"Screen Capture FPS: {fps}")
-
-
+        #fps = int(self.__frame_count / (time.perf_counter() - self.__capture_start_time))
+        print(f"Screen Capture FPS: low fps")
 
     def _rebuild_frame_bufferN(self, region: Tuple[int, int, int, int]):
         frame_shape = (region[3] - region[1],region[2] - region[0],self.channel_size, )
@@ -252,5 +231,7 @@ class DXCamera:
             self._stagesurf,
             self._duplicator,
         )
+
+
 
 
