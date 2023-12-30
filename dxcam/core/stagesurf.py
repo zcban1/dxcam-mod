@@ -37,22 +37,24 @@ class StageSurface:
         )
 
     def release(self):
-        if self.texture is not None:
-            self.width = 0
-            self.height = 0
+        if self.texture:# is not None:
+            self.width, self.height = 0, 0
             self.texture.Release()
             self.texture = None
 
     def map(self):
-        rect: DXGI_MAPPED_RECT = DXGI_MAPPED_RECT()
+        #rect: DXGI_MAPPED_RECT = DXGI_MAPPED_RECT()
+        rect = DXGI_MAPPED_RECT()
         self.texture.QueryInterface(IDXGISurface).Map(ctypes.byref(rect), 1)
         return rect
 
     def unmap(self):
         self.texture.QueryInterface(IDXGISurface).Unmap()
-
+    
     def __repr__(self) -> str:
-        return "<{} Initialized:{} Size:{} Format:{}>".format(
+        return f"<{self.__class__.__name__} Initialized:{self.texture is not None} Size:{(self.width, self.height)} Format:DXGI_FORMAT_B8G8R8A8_UNORM>"
+
+
             self.__class__.__name__,
             self.texture is not None,
             (self.width, self.height),
