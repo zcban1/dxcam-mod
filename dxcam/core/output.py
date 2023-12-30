@@ -16,8 +16,7 @@ class Output:
         self.update_desc()
 
     def update_desc(self):
-        if self.desc is None:
-            self.desc = DXGI_OUTPUT_DESC()
+        self.desc = DXGI_OUTPUT_DESC() if self.desc is None else self.desc
         self.output.GetDesc(ctypes.byref(self.desc))
 
     @property
@@ -27,27 +26,16 @@ class Output:
     @property
     def devicename(self) -> str:
         return self.desc.DeviceName
-
+    
     @property
     def resolution(self) -> Tuple[int, int]:
         rect = self.desc.DesktopCoordinates
-        width = rect.right - rect.left
-        height = rect.bottom - rect.top
+        width, height = rect.right - rect.left, rect.bottom - rect.top
         return width, height
-
-    #@property
-    #def resolution(self) -> Tuple[int, int]:
-        #return (
-            #(self.desc.DesktopCoordinates.right - self.desc.DesktopCoordinates.left),
-            #(self.desc.DesktopCoordinates.bottom - self.desc.DesktopCoordinates.top),
-        #)
 
     @property
     def surface_size(self) -> Tuple[int, int]:
-        if self.rotation_angle in (90, 270):
-            return self.resolution[1], self.resolution[0]
-        else:
-            return self.resolution
+        return (self.resolution[1],self.resolution[0]) if self.rotation_angle in (90, 270) else self.resolution
 
     @property
     def attached_to_desktop(self) -> bool:
@@ -58,7 +46,9 @@ class Output:
         return self.rotation_mapping[self.desc.Rotation]
 
     def __repr__(self) -> str:
-        return "<{} Name:{} Resolution:{} Rotation:{}>".format(
+        return f"<{self.__class__.__name__} Name:{self.devicename} Resolution:{self.resolution} Rotation:{self.rotation_angle}>"
+
+
             self.__class__.__name__,
             self.devicename,
             self.resolution,
