@@ -45,8 +45,8 @@ class Device:
         self.device.GetImmediateContext(ctypes.byref(self.im_context))
 
     def enum_outputs(self) -> List[ctypes.POINTER(IDXGIOutput1)]:
-        i = 0
         p_outputs = []
+        i = 0
         while True:
             try:
                 p_output = ctypes.POINTER(IDXGIOutput1)()
@@ -54,11 +54,11 @@ class Device:
                 p_outputs.append(p_output)
                 i += 1
             except comtypes.COMError as ce:
-                if ctypes.c_int32(DXGI_ERROR_NOT_FOUND).value == ce.args[0]:
+                if ce.args[0] == ctypes.c_int32(DXGI_ERROR_NOT_FOUND).value:
                     break
-                else:
-                    raise ce
+                raise ce
         return p_outputs
+
 
     @property
     def description(self) -> str:
@@ -73,9 +73,5 @@ class Device:
         return self.desc.VendorId
 
     def __repr__(self) -> str:
-        return "<{} Name:{} Dedicated VRAM:{}Mb VendorId:{}>".format(
-            self.__class__.__name__,
-            self.desc.Description,
-            self.desc.DedicatedVideoMemory // 1048576,
-            self.desc.VendorId,
-        )
+        return f"<{self.__class__.__name__} Name:{self.desc.Description} Dedicated VRAM:{self.desc.DedicatedVideoMemory // 1048576}Mb VendorId:{self.desc.VendorId}>"
+
