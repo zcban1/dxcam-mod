@@ -1,6 +1,7 @@
 import numpy as np 
 from .base import Processor
 import ctypes
+import cv2
 
 class NumpyProcessor(Processor):
     def __init__(self, color_mode):
@@ -29,7 +30,7 @@ class NumpyProcessor(Processor):
         pitch = pitch // 4
 
         image = np.ndarray((height, pitch, 4), dtype=np.uint8, buffer=buffer)
-        image = image[:, :, :3]
+
 
         # Evitare ridimensionamenti non necessari
         if rotation_angle in (0, 180):
@@ -53,5 +54,12 @@ class NumpyProcessor(Processor):
         if region[2] - region[0] != image.shape[1]:
             image = image[:, region[0] : region[2], :]
 
+        image = image[:, :, :3]
+        #convert to hsv
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
         return image
+
+
+
 
